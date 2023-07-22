@@ -1,44 +1,36 @@
 import PropTypes from 'prop-types';
 import Modal from 'components/Modal/Modal';
-import { Component } from 'react';
+import { useState } from 'react';
 import { ImgItem, Item } from './ImageGalleryItem.styled';
 
-class ImageGalleryItem extends Component {
+const ImageGalleryItem = ({ image }) => {
   //стан модалки
-  state = {
-    showModal: false,
-  };
+
+  const [showModal, setShowModal] = useState(false);
   //перемикання стану модалки
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-    }));
+  const toggleModal = () => {
+    setShowModal(prevModal => !prevModal); // Инвертирует значение showModal
   };
 
-  render() {
-    const { showModal } = this.state;
-    const { image } = this.props;
-
-    return (
-      <>
-        <Item>
-          <ImgItem
-            src={image.webformatURL}
-            alt={image.tags}
-            onClick={this.toggleModal}
+  return (
+    <>
+      <Item>
+        <ImgItem
+          src={image.webformatURL}
+          alt={image.tags}
+          onClick={toggleModal}
+        />
+        {showModal && (
+          <Modal
+            largeImageURL={image.largeImageURL}
+            tags={image.tags}
+            onClose={toggleModal}
           />
-          {showModal && (
-            <Modal
-              largeImageURL={image.largeImageURL}
-              tags={image.tags}
-              onClose={this.toggleModal}
-            />
-          )}
-        </Item>
-      </>
-    );
-  }
-}
+        )}
+      </Item>
+    </>
+  );
+};
 
 ImageGalleryItem.propTypes = {
   image: PropTypes.shape({
