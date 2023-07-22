@@ -1,90 +1,81 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
+import { ToastContainer, toast, Slide } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import * as API from '../services/getImages';
 import Button from './Button/Button';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Loader from './Loader/Loader';
 import Searchbar from './Searchbar/Searchbar';
 
-export class App extends Component {
-  state = {
-    searchText: '',
-    images: [],
-    currentPage: 1,
-    isLoading: false,
-    error: null,
-    totalPages: 0,
-  };
+export const App = () => {
+  const [searchText, setSearchText] = useState('');
+  const [images, setImages] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
 
-  //метод життєвого циклу при оновленні компоненту (якщо змінюється запит або сторінка,то виводим нові зображення)
-  componentDidUpdate(_, prevState) {
-    if (
-      prevState.searchText !== this.state.searchText ||
-      prevState.currentPage !== this.state.currentPage
-    ) {
-      this.addImages();
+  useEffect(() => {
+    if (searchText === '') {
+      return;
     }
-  }
+    //отримання та додавання зображень
+    async function addImages() {
+      try {
+        setIsLoading(true); //показуєм лоадер
+        const data = await API.getImages(searchText, currentPage); //отримуємо дані з API
+
+        if (data.hits.length === 0) {
+          return toast.warn('Sorry image not found...', {
+            position: toast.POSITION.TOP_RIGHT,
+            autoClose: 2000,
+          });
+        }
+
+        //відбираєм лише ті дані,які нас цікавлять
+        const imagesFormatedtoList = data.hits.map(
+          ({ id, tags, webformatURL, largeImageURL }) => ({
+            id,
+            tags,
+            webformatURL,
+            largeImageURL,
+          })
+        );
+
+        setImages(prevImages => [...prevImages, ...imagesFormatedtoList]);
+        setTotalPages(Math.ceil(data.totalHits / 12));
+      } catch {
+        toast.error('Ooops...Something went wrong', {
+          position: toast.POSITION.TOP_RIGHT,
+          autoClose: 2000,
+        }); //повідомлення у разі помилки
+      } finally {
+        setIsLoading(false); //вимикаєм лоадер у будь-якому випадку
+      }
+    }
+    addImages();
+  }, [searchText, currentPage]);
 
   //Завантаження зображень через збільш номеру ст
-  loadMore = () => {
-    this.setState(prevState => ({
-      currentPage: prevState.currentPage + 1,
-    }));
+  const loadMore = () => {
+    setCurrentPage(prevPage => prevPage + 1);
   };
 
   //обробка при сабміті форми,
-  handleSubmit = query => {
-    this.setState({
-      searchText: query,
-      images: [],
-      currentPage: 1,
-    });
+  const handleSubmit = query => {
+    setSearchText(query);
+    setImages([]);
+    setCurrentPage(1);
   };
 
-  //отримання та додавання зображень
-  addImages = async () => {
-    const { searchText, currentPage } = this.state;
-    try {
-      this.setState({ isLoading: true }); //показуєм лоадер
-      const data = await API.getImages(searchText, currentPage); //отримуємо дані з API
-
-      if (data.hits.length === 0) {
-        return alert('sorry image not found');
-      }
-      //відбираєм лише ті дані,які нас цікавлять
-      const imagesFormatedtoList = data.hits.map(
-        ({ id, tags, webformatURL, largeImageURL }) => ({
-          id,
-          tags,
-          webformatURL,
-          largeImageURL,
-        })
-      );
-
-      this.setState(state => ({
-        images: [...state.images, ...imagesFormatedtoList],
-        error: '',
-        totalPages: Math.ceil(data.totalHits / 12),
-      }));
-    } catch (error) {
-      this.setState({ error: 'Ooops...Something went wrong' }); //повідомлення у разі помилки
-    } finally {
-      this.setState({ isLoading: false }); //вимикаєм лоадер у будь-якому випадку
-    }
-  };
-
-  render() {
-    const { images, isLoading, currentPage, totalPages } = this.state;
-
-    return (
-      <>
-        <Searchbar onSubmit={this.handleSubmit} />
-        {images.length > 0 && <ImageGallery images={images} />}
-        {isLoading && <Loader />}
-        {images.length > 0 && totalPages !== currentPage && !isLoading && (
-          <Button onClick={this.loadMore} />
-        )}
-      </>
-    );
-  }
-}
+  return (
+    <>
+      <ToastContainer transition={Slide} />
+      <Searchbar onSubmit={handleSubmit} />
+      {images.length > 0 && <ImageGallery images={images} />}
+      {isLoading && <Loader />}
+      {images.length > 0 && totalPages !== currentPage && !isLoading && (
+        <Button onClick={loadMore} />
+      )}
+    </>
+  );
+};
