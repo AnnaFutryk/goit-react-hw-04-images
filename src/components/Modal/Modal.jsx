@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { createPortal } from 'react-dom';
 import { ModalWindow, Overlay } from './Modal.styled';
@@ -13,7 +13,9 @@ const Modal = ({ largeImageURL, tags, onClose }) => {
         onClose(); //закриття модалки при кліку на escape
       }
     };
-    window.addEventListener('keydown', this.handleKeyDown);
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown); // прибираємо слухача при натисканні на escape
